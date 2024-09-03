@@ -1,0 +1,52 @@
+FROM amazonlinux
+
+# Install necessary packages
+RUN yum install -y wget tar git docker
+
+# Create necessary directories
+RUN mkdir -p /opt/java/jdk11 /opt/maven /opt/tomcat /opt/app
+
+# Download and install JDK 11
+RUN wget https://download.java.net/openjdk/jdk11.0.0.2/ri/openjdk-11.0.0.2_linux-x64.tar.gz -O /tmp/openjdk.tar.gz \
+    && tar zxf /tmp/openjdk.tar.gz -C /opt/java/jdk11 \
+    && rm /tmp/openjdk.tar.gz \
+    && mv /opt/java/jdk11/jdk-11.0.0.2/* /opt/java/jdk11/ \
+    && rm -rf /opt/java/jdk11/jdk-11.0.0.2
+
+# Set JAVA_HOME and update PATH
+ENV JAVA_HOME=/opt/java/jdk11
+ENV PATH=$PATH:$JAVA_HOME/bin
+
+# Download and install Maven
+RUN wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.tar.gz -O /tmp/maven.tar.gz \
+    && tar zxf /tmp/maven.tar.gz -C /opt/maven \
+    && rm /tmp/maven.tar.gz \
+    && mv /opt/maven/apache-maven-3.8.8/* /opt/maven/ \
+    && rm -rf /opt/maven/apache-maven-3.8.8
+
+# Set M2_HOME and update PATH
+ENV M2_HOME=/opt/maven
+ENV PATH=$PATH:$M2_HOME/bin
+
+# Download and install Tomcat
+RUN wget https://archive.apache.org/dist/tomcat/tomcat-8/v8.5.90/bin/apache-tomcat-8.5.90.tar.gz -O /tmp/tomcat.tar.gz \
+    && tar zxf /tmp/tomcat.tar.gz -C /opt/tomcat \
+    && rm /tmp/tomcat.tar.gz \
+    && mv /opt/tomcat/apache-tomcat-8.5.90/* /opt/tomcat/ \
+    && rm -rf /opt/tomcat/apache-tomcat-8.5.90
+
+    # Expose Tomcat port
+EXPOSE 8080
+
+# Clone the repository and build the application
+RUN git clone https://github.com/vittal067/java-login-app.git /opt/app \
+    && cd /opt/app \
+    && mvn package \
+    && cp target/dptweb-1.0.war /opt/tomcat/webapps/
+
+# Set working directory
+WORKDIR /opt/app
+
+# Default command to run Tomcat
+CMD ["/opt/tomcat/bin/catalina.sh", "run"]
+
